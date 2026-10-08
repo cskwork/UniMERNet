@@ -38,12 +38,14 @@ formular_template = r"""
 """
 
 def run_shell_cmd(cmd, max_time=15):
-    child = subprocess.Popen(cmd, shell=True)
+    child = subprocess.Popen(cmd, stdout=subprocess.DEVNULL)
     for i in range(max_time):
-        if child.poll():
-            return True
+        returncode = child.poll()
+        if returncode is not None:
+            return returncode == 0
         if i == max_time-1:
             child.kill()
+            child.wait()
             return False
         time.sleep(1)
     return False
@@ -53,7 +55,9 @@ def render_latex(latex_code, basename, latex_dir, pdf_dir):
     pdf_path = os.path.join(pdf_dir, basename + ".pdf")
     with open(latex_path, "w") as f:
         f.write(formular_template % latex_code)
-    cmd = f"pdflatex -interaction=nonstopmode -output-directory={pdf_dir} -output-format=pdf {latex_path} >/dev/null"
+    cmd = ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode",
+           f"-output-directory={os.path.abspath(pdf_dir)}", "-output-format=pdf",
+           os.path.abspath(latex_path)]
     run_shell_cmd(cmd)
     return pdf_path
 

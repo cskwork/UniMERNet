@@ -101,7 +101,7 @@ formular_template_zh = r"""
 
 
 def run_cmd(cmd, timeout_sec=30):
-    proc = subprocess.Popen(cmd, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL)
     kill_proc = lambda p: p.kill()
     timer = Timer(timeout_sec, kill_proc, [proc])
     try:
@@ -111,8 +111,8 @@ def run_cmd(cmd, timeout_sec=30):
         timer.cancel()
         
 def convert_pdf2img(pdf_filename, png_filename):
-    cmd = "magick -density 200 -quality 100 %s %s"%(pdf_filename, png_filename)
-    os.system(cmd)
+    subprocess.call(["magick", "-density", "200", "-quality", "100",
+                     os.path.abspath(pdf_filename), os.path.abspath(png_filename)])
 
 def crop_image(image_path, pad=8):
     img = Image.open(image_path).convert("L")
@@ -238,7 +238,8 @@ def latex2bbox_color(input_arg):
     
     with open(tex_filename, "w") as w: 
         print(final_latex, file=w)
-    run_cmd(f"pdflatex -interaction=nonstopmode -output-directory={temp_dir} {tex_filename} >/dev/null")
+    run_cmd(["pdflatex", "-no-shell-escape", "-interaction=nonstopmode",
+             f"-output-directory={os.path.abspath(temp_dir)}", os.path.abspath(tex_filename)])
     try:
         os.remove(tex_filename)
         os.remove(log_filename)
